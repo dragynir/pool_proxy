@@ -49,24 +49,33 @@ int Proxy::accept_connection(){
     }
 
     
-
     errno = pthread_mutex_lock(&this->connections_mutex);
-
 
 
     if(0 != errno){
         perror("pthread_mutex_lock");
+        exit(EXIT_FAILURE);
     }
 
     std::cout << "Push new connection" << "\n";
     this->connections.push(client_socket);
 
     
-    pthread_cond_broadcast(&this->connections_cond);
+    errno = pthread_cond_broadcast(&this->connections_cond);
 
+    if(0 != errno){
+        perror("pthread_cond_broadcast");
+        exit(EXIT_FAILURE);
+    }
 
 
     errno = pthread_mutex_unlock(&this->connections_mutex);
+
+
+    if(0 != errno){
+        perror("pthread_mutex_unlock");
+        exit(EXIT_FAILURE);
+    }
 
     return 0;
 }   
@@ -96,17 +105,27 @@ void Proxy::start(){
 
 
 
-    pthread_t thread_id;
+    errno = pthread_attr_init(&this->pthread_detach_attr);
+
+    if(0 != errno){
+        perror("pthread_attr_init");
+        return;
+    }
+
+
+    errno = pthread_attr_setdetachstate(&this->pthread_detach_attr, PTHREAD_CREATE_DETACHED);
+
+
+    if (0 != errno){
+        perror("pthread_attr_setdetachstate");
+        return;
+    }
+
+
     int successed_startup_count = 0; 
     worker_attr * worker_params;
 
     for(int i = 0; i < pool_size; ++i){
-
-
-        //reserve up
-        //this->worker_threads[i] = thread_id;
-
-
 
         ProxyWorker * proxy_worker = NULL;
 
@@ -135,7 +154,7 @@ void Proxy::start(){
         worker_params->worker = proxy_worker;
 
 
-        errno = pthread_create(&this->worker_threads[i], NULL, start_worker, worker_params);
+        errno = pthread_create(&this->worker_threads[i], &this->pthread_detach_attr, start_worker, worker_params);
 
         if(0 != errno){
             free(worker_params);
@@ -180,8 +199,10 @@ void Proxy::start(){
     if(0 != bad_join){
         return;
     }else{
-
-        // delete resources
+        for(size_t i = 0; i < workers.size(); ++i){
+            assert(NULL != this->workers[i]);
+            this->workers[i]->stop();
+        }
     }
 
 
@@ -193,8 +214,7 @@ void Proxy::start(){
 Proxy::~Proxy(){
 
     close(this->listener);
-
     pthread_mutex_destroy(&this->connections_mutex);
     pthread_cond_destroy(&this->connections_cond);
-
+    pthread_attr_destroy(&this->pthread_detach_attr);
 }

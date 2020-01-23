@@ -36,7 +36,7 @@
 
 
 #define SESSION_BUFFER_SIZE 8192
-#define IO_BUFFER_SIZE 8192
+#define IO_BUFFER_SIZE 4096
 
 
 
@@ -139,7 +139,8 @@ private:
 	bool sending_to_client;
 
 
-	char buffer[SESSION_BUFFER_SIZE];
+	char * buffer;
+	int buffer_capacity;
 	int buffer_write_position;
 	int buffer_read_position;
 	int request_length;

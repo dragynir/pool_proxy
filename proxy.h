@@ -37,6 +37,7 @@ private:
 	int accept_connection();
 
 	std::vector<pthread_t> worker_threads;
+	pthread_attr_t pthread_detach_attr;
 	std::vector<ProxyWorker *> workers;
 
 

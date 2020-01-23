@@ -31,6 +31,8 @@ public:
 
 	void start();
 
+	void stop();
+
 private:
 
 	int serve_session(Session * session, pollfd * fds);

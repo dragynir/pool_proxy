@@ -76,6 +76,12 @@ void ProxyWorker::start(){
         pthread_mutex_lock(this->connections_mutex);
 
 
+        if(0 != errno){
+            perror("pthread_mutex_lock");
+            break;
+        }
+
+
         if(this->connections->empty()){
 
             if(this->sessions.empty()){
@@ -115,7 +121,12 @@ void ProxyWorker::start(){
 
 
 
-        pthread_mutex_unlock(this->connections_mutex);
+        errno = pthread_mutex_unlock(this->connections_mutex);
+
+        if(0 != errno){
+            perror("pthread_mutex_unlock");
+            break;
+        }
 
 
 
@@ -163,6 +174,10 @@ void ProxyWorker::start(){
 
 }
 
+
+void ProxyWorker::stop(){
+    this->is_alive = false;
+}
 
 
 
@@ -336,8 +351,8 @@ int ProxyWorker::update_sessions(){
 void ProxyWorker::close_all_sessions(){
 	printf("%s\n", "All sessions closed");
 	for(size_t i = 0; i < this->sessions.size(); ++i){
+        assert(NULL != this->sessions[i]);
 		this->sessions[i]->close_sockets();
-		assert(NULL != this->sessions[i]);
 		delete this->sessions[i];
 	}
 }
