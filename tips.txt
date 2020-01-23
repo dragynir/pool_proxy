@@ -1,5 +1,7 @@
 как прервать poll
 
+CC parser.cpp proxy.cpp main.cpp cache.cpp session.cpp proxy_worker.cpp safe_cache_map.cpp -mt -lnsl -lresolv -lsocket -o s
+
 
 http://edu-top.ru/katalog/urls.php
 

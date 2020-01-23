@@ -58,7 +58,14 @@ public:
 	void use(){
 		this->links_count++;
 	}
-	void unuse(){this->links_count--;}
+	
+	void unuse(){
+
+		if(this->links_count >= 0){
+			this->links_count--;
+		}
+
+	}
 
 
 	int add_data(char * data, size_t size);

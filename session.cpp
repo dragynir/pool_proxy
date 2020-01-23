@@ -10,7 +10,7 @@ Session::Session(int client_socket, SafeCacheMap * cache){
 
 	this->buffer = NULL;
 	this->buffer_capacity = 0;
-
+	use_global_record = false;
 
 	this->cache = cache;
 	this->cache_record = NULL;
@@ -39,6 +39,7 @@ Session::~Session(){
 	}
 
 	close_sockets();
+	free(this->buffer);
 }
 
 
@@ -114,7 +115,7 @@ int Session::handle_client_request(int request_length){
 
 
 	
-	this->keep_request.assign(this->buffer, request_length + strlen("\r\n\r\n"));
+	this->keep_request.append(this->buffer, request_length + strlen("\r\n\r\n"));
 
 
 	this->buffer[request_length + strlen("\r\n\r\n")] = '\0';
@@ -143,14 +144,14 @@ int Session::handle_client_request(int request_length){
 	std::string string_resource(char_resource);
 
 
-	this->host.assign(char_host, strlen(char_host));
+	this->host.append(char_host, strlen(char_host));
 
 	if(NULL == char_url){
 		
 		this->url = this->host + string_resource;
 
 	}else{
-		this->url.assign(char_url, strlen(char_url));
+		this->url.append(char_url, strlen(char_url));
 		free(char_url);
 	}
 	free(char_resource);
@@ -167,6 +168,7 @@ int Session::handle_client_request(int request_length){
 
 	replace_field(this->keep_request, this->url, string_resource);
 	replace_field(this->keep_request, "keep-alive", "close");
+	replace_field(this->keep_request, "Keep-Alive", "close");
 	replace_field(this->keep_request, "Proxy-Connection", "Connection");
 
 
@@ -223,6 +225,7 @@ int Session::handle_client_request(int request_length){
 			}else{
 				std::cout << "\n<=======================Use cache for: " << this->url << "\n";
 				this->state = USE_CACHE;
+				use_global_record = true;
 				it->second->use();
 				this->buffer_write_position = 0;
 
@@ -334,7 +337,7 @@ int Session::read_client_request(){
 		this->buffer_capacity = this->buffer_capacity * factor;
 	}
 
-	
+
 
 	int read_count = read(this->client_socket, this->buffer + this->buffer_write_position, IO_BUFFER_SIZE);
 
@@ -641,7 +644,12 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 							return -1;
 						}
 
+						if(this->cache_record->is_full()){
+							this->global_cache_record->finish();
+						}
+
 						assert(this->cache_record->is_local());
+						use_global_record = true;
 						delete this->cache_record;
 						this->cache_record = this->global_cache_record;
 						assert(NULL != this->cache_record);
@@ -841,6 +849,7 @@ int Session::use_cache(){
 		if(0 == to_write && this->cache_record->is_full()){
 			std::cout << "All data had writen(cache) for: " << this->url << "\n";
 			//delete session ok
+			this->cache_record->unuse();
 			this->cache_record->unlock();//--------------------------------unlock------------------------------------
 			return -1;
 		}
@@ -857,6 +866,7 @@ int Session::use_cache(){
 
 			if(EAGAIN != errno && EWOULDBLOCK != errno){
 				perror("cache write to client:");
+				this->cache_record->unuse();
 				this->cache_record->unlock();//-------------------------------------unlock-------------------------------
 				return -1;
 			}
@@ -875,13 +885,16 @@ int Session::use_cache(){
 	}catch(MutexError& e){
 
 		std::cerr << "lock cache: " << e.what() << '\n';
+		this->cache_record->unuse();
 		return -1;
 		
 	}catch(RwlockException& e){
 		std::cerr << "Rwlock: " << e.what() << '\n';
+		this->cache_record->unuse();
 		return -1;
 	}catch(std::exception& exc){
 		std::cout << "Caught: " << exc.what() << '\n';
+		this->cache_record->unuse();
 		return -1;
 	}
 

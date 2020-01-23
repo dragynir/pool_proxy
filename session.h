@@ -124,7 +124,7 @@ private:
 
 	CacheRecord * cache_record;
 	CacheRecord * global_cache_record;
-
+	bool use_global_record;
 
 
 	std::string  url;

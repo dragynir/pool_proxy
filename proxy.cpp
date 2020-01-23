@@ -39,13 +39,13 @@ int Proxy::accept_connection(){
 
     if(client_socket < 0){
         perror("accept");
-        return -1;
+        return 0;
     }
 
 
     if(fcntl(client_socket, F_SETFL, O_NONBLOCK) == -1){
         perror("fcntl accept:");
-        return -1;
+        return 0;
     }
 
     
@@ -173,14 +173,8 @@ void Proxy::start(){
 
     }
 
-
-    int result = 0;
-
     while(1){
-        result = accept_connection();
-        if(result < 0){
-            break;
-        }
+        accept_connection();
     }
 
 
