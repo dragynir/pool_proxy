@@ -65,6 +65,7 @@ int Proxy::accept_connection(){
 
     if(0 != errno){
         perror("pthread_cond_broadcast");
+        pthread_mutex_unlock(&this->connections_mutex);
         exit(EXIT_FAILURE);
     }
 

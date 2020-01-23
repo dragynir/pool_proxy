@@ -73,7 +73,7 @@ void ProxyWorker::start(){
 
 
 
-        pthread_mutex_lock(this->connections_mutex);
+        errno = pthread_mutex_lock(this->connections_mutex);
 
 
         if(0 != errno){
