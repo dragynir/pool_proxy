@@ -50,25 +50,25 @@ int main(int argc, char** argv){
     signal(SIGPIPE, SIG_IGN);
 
 
-
-
+    char * next = NULL;
     int radix = 10;
-    int port_to_listen = strtol(argv[1], NULL, radix);
+    int port_to_listen = strtol(argv[1], &next, radix);
         
-    if(0 != errno){
-        perror("strtol");
+    if((next == argv[1]) || (*next != '\0')){
         printf("Invalid argument: bind port.\n");
         return EXIT_FAILURE;
     }
 
 
-    int pool_size = strtol(argv[2], NULL, radix);
 
-    if(0 != errno){
-        perror("strtol");
+
+    int pool_size = strtol(argv[2], &next, radix);
+
+    if((next == argv[1]) || (*next != '\0')){
         printf("Invalid argument: threads count.\n");
         return EXIT_FAILURE;
     }
+
 
 
     int listener = bind_to_port(port_to_listen);
